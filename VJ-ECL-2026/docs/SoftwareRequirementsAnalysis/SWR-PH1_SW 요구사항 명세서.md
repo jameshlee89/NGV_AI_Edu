@@ -16,7 +16,7 @@
 | 프로젝트 | VJ-ECL-2026 (가상 OEM-A 전자식 후석 좌/우 차일드락 제어 SW) |
 | 작성 문서 ID와 명칭 | SWR-PH1_SW 요구사항 명세서 |
 | 버전 및 베이스라인 | v0.1 (초안) / 목표 베이스라인 BL-SWR-1.0 (승인 시 확정, G1 게이트) |
-| 작성자와 검토자 | 작성자: 요구사항 분석 에이전트(requirements-analyst 스킬, 세션 실행자 jaehwan2.lee@hlcompany.com) / 검토자: 미정(사용자 검토·승인 대기) |
+| 작성자와 검토자 | 작성자: 요구사항 분석 에이전트(requirements-analyst 스킬, 세션 실행자 jaehwan2.lee@hlcompany.com) / 검토자 겸 승인자: jaehwan2.lee@hlcompany.com (사용자 본인, 2026-09-18 지정) |
 
 본 자료는 SW 품질교육을 위한 교육용 샘플이며, 저작권은 Synetics에 있습니다. 교육 과정 안에서 열람,
 복제 및 실습 사용을 허용합니다. 과정 밖 배포, 공개 또는 상업적 이용은 Synetics의 사전 서면 승인을
@@ -38,8 +38,8 @@
 | 구분 | 역할 또는 성명 | 상태 | 일자 | 증거 위치 |
 |---|---|---|---|---|
 | 작성 | 요구사항 분석 에이전트 | 완료 | 2026-09-18 | 본 문서 |
-| 검토 | 미정 | 대기 | - | - |
-| 승인 | 미정 | 대기 | - | - |
+| 검토 | jaehwan2.lee@hlcompany.com (사용자 본인) | 대기(Phase 1 종료 시 종합 리뷰 예정) | - | 대화 이력(§8 미결정 사항 4건 확정 답변) |
+| 승인 | jaehwan2.lee@hlcompany.com (사용자 본인) | 대기(Phase 1 종료 시 종합 승인 예정) | - | - |
 
 ## 목차
 
@@ -230,6 +230,44 @@ Web 시뮬레이터에서 동일 케이스 육안 재현 확인. 실행 가능 �
 
 **추적 링크**: 상위 OEM-FR-001 / SWR-020과의 우선순위 관계는 §8 참조.
 
+---
+
+#### SWR-020 — Ignition-Off 시 논리 차일드락 출력의 강제 해제 및 재전환 시 유지
+
+| 속성 | 내용 |
+|---|---|
+| 유형 | 기능 (QM) |
+| 출처 | OEM-FR-007, OEM-IF-009(`ignition_on`) |
+| 우선순위 | 필수 |
+| 상태 | 초안(§8 미결정 사항 3건 확정 답변 반영, 2026-09-18) |
+
+**설명 (EARS)** — 세 조건(진입/지속/재전환)을 각각 원자적으로 규정한다:
+
+- (a) 이벤트 기반: WHEN `ignition_on`이 유효값 `FALSE`로 판정된 첫 평가주기가 되면, THE SW SHALL
+  `lock_left`와 `lock_right`를 `RELEASE`로 강제하고, `OEM-IF-006`에 `state=OFF`,
+  `reason_code=IGNITION_OFF`를 제공하며, 이 값은 SWR-002/SWR-004가 산출한 값보다 항상 우선
+  적용된다.
+- (b) 상태 기반: WHILE `ignition_on`이 `FALSE`이거나 `INVALID`(누락/형식 오류, OEM-IF-009 오류
+  처리)로 판정되는 동안, THE SW SHALL `lock_left`/`lock_right`를 `RELEASE`로 유지하고 새 
+  `Driver_Command`를 적용하지 않는다. (사용자 확정: `ignition_on` INVALID는 `FALSE`와 동일하게
+  안전측(fail-safe)으로 처리한다 — 2026-09-18 확정.)
+- (c) 이벤트 기반: WHEN `ignition_on`이 `FALSE`(또는 INVALID) 이후 유효값 `TRUE`로 전환되는 첫
+  평가주기가 되면, THE SW SHALL `lock_left`/`lock_right`를 **무조건 `RELEASE`로 유지**한다 —
+  ignition-off 진입 직전에 래치되어 있던 명령을 복원하지 않는다. 이후 잠금은 새로운
+  `Driver_Command`(SWR-001/002/004)로만 이루어진다. (사용자 확정: 안전측 기본값 접근 —
+  2026-09-18 확정.)
+
+**근거/사유**: OEM-FR-007 수용기준은 진입 조건(a)만 명시한다. 지속 조건(b)과 재전환 조건(c)은 OEM
+원문에 명시가 없어 §8에서 사용자 확인을 거쳐 확정했다 — 세 조건 모두 "차량 정지/미시동 상태에서는
+차일드락이 걸려 있지 않아야 한다"는 안전측 기본값 원칙과 일관된다.
+
+**검증방안**: PC/SIL 상태전이 시험으로 (1) TRUE→FALSE 전환 엣지에서 RELEASE+OFF 확인, (2) FALSE
+지속 구간에 `Driver_Command` 주입 시 무시됨을 확인, (3) FALSE→TRUE 재전환 직후 출력이 RELEASE로
+유지됨을 확인(직전 LOCK 상태였더라도), (4) `ignition_on` 필드에 형식 오류를 주입해 (1)과 동일하게
+처리됨을 확인. 실행 가능 여부: 확인됨(상태전이 기법).
+
+**추적 링크**: 상위 OEM-FR-007 / SWR-004(우선순위 피적용 측)와의 관계는 §8 참조.
+
 ### 4.2 안전 관련 SW 요구사항
 
 해당 없음. 이번 Phase 1(SWR-001, SWR-002, SWR-004, SWR-020)은 모두 OEM 문서상 **QM** 등급이며,
@@ -244,7 +282,7 @@ ASIL B 안전 요구(OEM-SR-001~004)는 Phase 2(`feature/phase2-safety-arbitrati
 | `side` | enum(string) | `left`, `right`, `all` | - | 3개 값 중 하나, 결측 불가 | 누락/미등록 값 → SWR-001(b) 거절 |
 | `action` | enum(string) | `lock`, `unlock` | - | 2개 값 중 하나, 결측 불가 | 상동 |
 | `source` | enum(string) | `physical_button`, `avn`, `voice`, `mobile_app` | - | 4개 값 중 하나, 결측 불가 | 상동 |
-| `ignition_on` | boolean | `TRUE`, `FALSE` | - | 누락/형식 오류 → `INVALID`(OEM-IF-009) | `INVALID` 판정 이후 동작은 OEM-FR-007 원문에 명시 없음 — §8 미결정 항목 |
+| `ignition_on` | boolean | `TRUE`, `FALSE` | - | 누락/형식 오류 → `INVALID`(OEM-IF-009) | `INVALID` 판정 시 SWR-020(b)에 따라 `FALSE`와 동일하게 RELEASE+OFF로 처리한다(사용자 확정, 2026-09-18) |
 | `timestamp_s` | float | ≥ 0 | 초(s) | `VehicleSnapshot` 평가주기 시각. `Driver_Command` 수신 시각 판단에 사용(OEM-IF-004) | 형식 오류 시 해당 평가주기 스냅샷 전체를 무효로 처리(가정, §8) |
 
 **평가주기 입력 구조(가정)**: OEM 문서에 명시적 스키마는 없으나, OEM-IF-004의 "요청 시각은
@@ -284,11 +322,12 @@ SWR로 도출하지 않는다). 다만 실행 환경 제약은 ISO 25010 "호환
 
 1. 매 평가주기 입력은 `VehicleSnapshot { timestamp_s, ignition_on, driver_command? }` 구조로
    제공된다(§5). OEM 원문에 명시적 스키마가 없어 추론했으며, 아키텍처 설계 시 확정이 필요하다.
-2. 한 평가주기에는 최대 1건의 `Driver_Command`만 존재한다고 가정한다. 동일 주기에 복수 명령이
-   동시에 도착하는 경우의 처리 순서는 OEM 원문에 명시되어 있지 않다 — **사용자 확인 필요**.
+2. 한 평가주기에는 최대 1건의 `Driver_Command`만 존재한다(사용자 확정, 2026-09-18 — 입력 구조 자체가
+   평가주기당 단일 명령을 전제하며, 복수 명령 동시 도착은 설계상 발생하지 않는 것으로 취급한다).
 3. SWR-004의 "선택되지 않은 나머지 출력 유지"는 직전 평가주기 값을 보존한다는 의미로 해석했다.
    시스템 최초 기동 시 초기값은 `RELEASE`로 가정한다(OEM-FR-007의 ignition-off 초기 해제 요구와
-   일관성을 맞춤).
+   일관성을 맞춤). `ignition_on`이 FALSE(또는 INVALID)에서 TRUE로 재전환된 직후에도 동일하게
+   `RELEASE`를 유지한다 — 직전 래치 명령은 복원하지 않는다(SWR-020(c), 사용자 확정, 2026-09-18).
 4. `OEM-IF-006`의 `state`/`reason_code` 열거형 값은 §6에서 최소 필요 집합으로 정의했다(가정) —
    Phase 4에서 `priority_reason`, `input_validity`와 함께 재검토 필요.
 
@@ -309,13 +348,20 @@ SWR로 도출하지 않는다). 다만 실행 환경 제약은 ISO 25010 "호환
   가능성이 있다. 본 문서는 이를 금지하거나 확정하지 않으며, 아키텍처가 우선순위 중재 계층을 나중에
   삽입할 수 있는 구조를 갖도록 설계 고려사항으로만 남긴다(§4.2 참조).
 
-### 미결정 사항 (사용자 확인 필요)
+### 확정 사항 (2026-09-18, 사용자 확인 완료)
 
-1. `ignition_on`이 다시 `TRUE`로 전환된 직후의 출력 초기값(직전 래치된 명령 복원 여부, 또는
-   무조건 `RELEASE` 유지)이 OEM 원문에 명시되어 있지 않다.
-2. 동일 평가주기 내 복수 `Driver_Command` 동시 도착 시 처리 순서/정책.
-3. `ignition_on` 필드가 `INVALID`로 판정된 경우(OEM-IF-009 오류 처리)의 후속 동작 — SWR-020과
-   동일하게 취급할지 별도 정의가 필요한지 불명확.
+애초 §8 초안에서 미결정으로 남겼던 3건은 사용자 확인을 거쳐 아래와 같이 확정했다(모두 안전측
+기본값 원칙 적용).
+
+1. `ignition_on`이 다시 `TRUE`로 전환된 직후 출력은 직전 래치 명령을 복원하지 않고 무조건
+   `RELEASE`를 유지한다 → SWR-020(c)에 반영.
+2. 한 평가주기에는 최대 1건의 `Driver_Command`만 존재한다고 확정(위 가정 2 참조) — 복수 명령 동시
+   도착에 대한 별도 중재 로직은 설계하지 않는다.
+3. `ignition_on`이 `INVALID`로 판정되면 `FALSE`와 동일하게 처리한다(RELEASE+OFF) → SWR-020(b), §5에
+   반영.
+
+문서 검토자·승인자는 사용자 본인(jaehwan2.lee@hlcompany.com)으로 지정했다(문서 통제 섹션 참고,
+실제 승인은 Phase 1 종료 시 종합 리뷰에서 처리).
 
 ## 9. 하향 할당 및 검증 계획
 
@@ -324,7 +370,7 @@ SWR로 도출하지 않는다). 다만 실행 환경 제약은 ISO 25010 "호환
 | SWR-001 | 미정 — G2 아키텍처 설계에서 입력 검증 컴포넌트에 배정 예정 | PC/SIL/Web | 동등분할(유효 enum 조합) + 오류추정(누락/형식/미등록 enum) | Phase 1 시스템시험 결과(G4, `sw-system-test` 스킬 산출물, `docs/SoftwareVerification/`) |
 | SWR-002 | 미정 — G2에서 명령 디스패치 컴포넌트에 배정 예정 | PC/SIL/Web | source 4종 동등클래스 반복 실행 및 출력 동등성 비교 | 상동 |
 | SWR-004 | 미정 — G2에서 출력 적용 컴포넌트에 배정 예정 | PC/SIL/Web | 진리표 기반 시험(3 side × 2 action × 2 사전상태) | 상동 |
-| SWR-020 | 미정 — G2에서 점화상태 감시/출력 중재 컴포넌트에 배정 예정 | PC/SIL/Web | 상태전이 시험(ON→OFF 엣지, OFF 지속 구간) | 상동 |
+| SWR-020 | 미정 — G2에서 점화상태 감시/출력 중재 컴포넌트에 배정 예정 | PC/SIL/Web | 상태전이 시험(ON→OFF 엣지, OFF 지속 구간, OFF→ON 재전환 후 RELEASE 유지, INVALID 판정 시 동일 처리) | 상동 |
 
 G1(BL-SWR-1.0, 본 문서 승인) → G2(아키텍처/상세설계에서 위 "설계 할당 대상" 확정) → G3(구현/단위·
 통합시험) → G4(위 "계획된 증거" 실제 생성)의 게이트 흐름을 따른다.
@@ -341,8 +387,6 @@ G1(BL-SWR-1.0, 본 문서 승인) → G2(아키텍처/상세설계에서 위 "�
 - 상태조회 표시 전체 기능(OEM-FR-004), `priority_reason`/`input_validity` 표시 필드(OEM-IF-006
   나머지) — Phase 4(관측성) 범위다.
 - 결정론적 재현(OEM-NFR-001), 휘발성 이벤트 로그 100건(OEM-NFR-002) 충족 — Phase 4 범위다.
-- `ignition_on` 재-`TRUE` 전환 후 출력 복원 정책, 복수 명령 동시 도착 정책 — §8 미결정 사항으로,
-  본 문서는 이에 대해 확정된 동작을 규정하지 않는다.
 
 ## 11. 추적성
 
