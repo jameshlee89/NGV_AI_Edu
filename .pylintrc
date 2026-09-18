@@ -11,11 +11,18 @@ enable=invalid-name,too-many-statements,duplicate-code
 
 [BASIC]
 # tdd 스킬 references/naming-convention.md와 동일한 규칙:
-# 3글자 이상, 소문자로 시작하는 camelCase
-function-rgx=[a-z][a-zA-Z0-9]{2,}$
-variable-rgx=[a-z][a-zA-Z0-9]{2,}$
-argument-rgx=[a-z][a-zA-Z0-9]{2,}$
-method-rgx=[a-z][a-zA-Z0-9]{2,}$
+# 3글자 이상, 소문자로 시작하는 camelCase. 메서드는 매직 메서드(__init__ 등, 언어 규약)를 예외로 허용.
+# attr-rgx/class-attribute-rgx를 빠뜨리면 인스턴스 속성명이 pylint 기본값(snake_case)과
+# 충돌해 개별 파일에서 국소적으로 invalid-name을 꺼야 하는 상황이 생기므로 반드시 함께 지정한다.
+# 선행 언더스코어 1개(`_camelCase`)는 Python의 "내부 전용" 관례이므로 모든 패턴에서 선택적으로
+# 허용한다(언더스코어 뒤 이름 부분은 여전히 3글자 이상 camelCase여야 함) — VJ-ECL-2026 Phase 1 구현
+# 중 실측으로 발견된 간극을 반영해 2026-09-18 수정.
+function-rgx=_?[a-z][a-zA-Z0-9]{2,}$
+variable-rgx=_?[a-z][a-zA-Z0-9]{2,}$
+argument-rgx=_?[a-z][a-zA-Z0-9]{2,}$
+method-rgx=(__[a-z][a-zA-Z0-9]*__|_?[a-z][a-zA-Z0-9]{2,})$
+attr-rgx=_?[a-z][a-zA-Z0-9]{2,}$
+class-attribute-rgx=_?[a-z][a-zA-Z0-9]{2,}$
 
 [DESIGN]
 # "함수 라인수는 순수코드라인 50라인 이하" 근사 지표로 statement 수를 사용한다.

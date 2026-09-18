@@ -18,10 +18,35 @@
 
 | 하위 ID | 유형 | 상위(근거) ID | 설계 요소 | 테스트 케이스 ID | 검증 상태 | 비고 |
 |---|---|---|---|---|---|---|
-| SWR-001 | 기능(QM) | OEM-FR-001 (+ OEM-IF-004 오류 처리) | ARC-003 CommandValidator (IF-INT-005) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-003 CommandValidator / FN-020 `validate()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.1/§6.1, 의사결정표 없음(총함수, 진리표는 §6.1 의사코드로 대체) | 미정 (G4, `sw-system-test` 스킬에서 도출 예정) | 미검증 | 다이어그램: `SWR-PH1_sequence.puml`, `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWD-PH1_class.puml` |
-| SWR-002 | 기능(QM) | OEM-FR-001 | ARC-004 CommandDispatcher (IF-INT-006) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-004 CommandDispatcher / FN-030 `dispatch()`, FN-031 `get_current_cycle_command()`, FN-032 `discard_current_cycle_command()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.2, source 비분기 정적 근거(§5.2, §11.1) | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_sequence.puml`, `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWD-PH1_class.puml` |
-| SWR-004 | 기능(QM) | OEM-FR-001 | ARC-006 DriverCommandPolicy, BASE 정책 (IF-INT-008) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-006 DriverCommandPolicy / FN-050 `evaluate()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.4/§6.2, 정책 의사결정표 §7.1(12+2행, 완전성/일관성 점검 완료) | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_state-ignition.puml`(ACTIVE 하위상태), `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWA-PH1_sequence-nominal.puml`, `SWD-PH1_class.puml`. SWR-020과 우선순위 관계 있음(비고 참조, 실행 근거 §7.3) |
-| SWR-020 | 기능(QM) | OEM-FR-007 | ARC-007 IgnitionOverridePolicy, OVERRIDE 정책 (IF-INT-008) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-007 IgnitionOverridePolicy / FN-060 `evaluate()`, FN-061 `_classify_ignition()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.5/§6.3, 정책 의사결정표 §7.2(3행) + 상태전이 4케이스 §8.2 | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_state-ignition.puml`(OFF↔ACTIVE 전이), `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWA-PH1_sequence-ignition-override.puml`, `SWD-PH1_class.puml`, `SWD-PH1_state-cycle-detail.puml`. SWR-002/SWR-004 산출값보다 항상 우선 적용(SWR 문서 §8) — ARC-002/**UNIT-002 PolicyChainExecutor(FN-010)**가 이 우선순위를 실행(IF-INT-008 규약, §7.3), 정책 실행 중 예외 처리 결정은 `SWD-PH1_SW 상세설계서.md` §10.4 참고 |
+| SWR-001 | 기능(QM) | OEM-FR-001 (+ OEM-IF-004 오류 처리) | ARC-003 CommandValidator (IF-INT-005) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-003 CommandValidator / FN-020 `validate()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.1/§6.1, 의사결정표 없음(총함수, 진리표는 §6.1 의사코드로 대체) ▶ 구현: `VJ-ECL-2026/src/core/command_validator.py` | `VJ-ECL-2026/tests/unit/test_unit003_command_validator.py` (단위시험, Phase 1 완료. G4 `sw-system-test` 스킬 시스템시험 케이스 ID는 별도 도출 예정) | 단위시험 통과(2026-09-18, 66/66 그린, branch coverage 100%) | 다이어그램: `SWR-PH1_sequence.puml`, `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWD-PH1_class.puml` |
+| SWR-002 | 기능(QM) | OEM-FR-001 | ARC-004 CommandDispatcher (IF-INT-006) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-004 CommandDispatcher / FN-030 `dispatch()`, FN-031 `get_current_cycle_command()`, FN-032 `discard_current_cycle_command()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.2, source 비분기 정적 근거(§5.2, §11.1) ▶ 구현: `VJ-ECL-2026/src/core/command_dispatcher.py` | `VJ-ECL-2026/tests/unit/test_unit004_command_dispatcher.py` (단위시험, Phase 1 완료. G4 시스템시험 케이스 ID는 별도 도출 예정) | 단위시험 통과(2026-09-18, 66/66 그린, branch coverage 100%) | 다이어그램: `SWR-PH1_sequence.puml`, `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWD-PH1_class.puml` |
+| SWR-004 | 기능(QM) | OEM-FR-001 | ARC-006 DriverCommandPolicy, BASE 정책 (IF-INT-008) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-006 DriverCommandPolicy / FN-050 `evaluate()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.4/§6.2, 정책 의사결정표 §7.1(12+2행, 완전성/일관성 점검 완료) ▶ 구현: `VJ-ECL-2026/src/core/policies/driver_command_policy.py` | `VJ-ECL-2026/tests/unit/test_unit006_driver_command_policy.py` (단위시험, §7.1 12+2행 전부 대응, Phase 1 완료. G4 시스템시험 케이스 ID는 별도 도출 예정) | 단위시험 통과(2026-09-18, 66/66 그린, branch coverage 100%) | 다이어그램: `SWR-PH1_state-ignition.puml`(ACTIVE 하위상태), `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWA-PH1_sequence-nominal.puml`, `SWD-PH1_class.puml`. SWR-020과 우선순위 관계 있음(비고 참조, 실행 근거 §7.3) |
+| SWR-020 | 기능(QM) | OEM-FR-007 | ARC-007 IgnitionOverridePolicy, OVERRIDE 정책 (IF-INT-008) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-007 IgnitionOverridePolicy / FN-060 `evaluate()`, FN-061 `classifyIgnition()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.5/§6.3, 정책 의사결정표 §7.2(3행) + 상태전이 4케이스 §8.2 ▶ 구현: `VJ-ECL-2026/src/core/policies/ignition_override_policy.py` | `VJ-ECL-2026/tests/unit/test_unit007_ignition_override_policy.py` (단위시험, §7.2 3행 + §8.2 4케이스 전부 대응, Phase 1 완료. G4 시스템시험 케이스 ID는 별도 도출 예정) | 단위시험 통과(2026-09-18, 66/66 그린, branch coverage 100%) | 다이어그램: `SWR-PH1_state-ignition.puml`(OFF↔ACTIVE 전이), `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWA-PH1_sequence-ignition-override.puml`, `SWD-PH1_class.puml`, `SWD-PH1_state-cycle-detail.puml`. SWR-002/SWR-004 산출값보다 항상 우선 적용(SWR 문서 §8) — ARC-002/**UNIT-002 PolicyChainExecutor(FN-010)**가 이 우선순위를 실행(IF-INT-008 규약, §7.3), 정책 실행 중 예외 처리 결정은 `SWD-PH1_SW 상세설계서.md` §10.4 참고. 구현: `VJ-ECL-2026/src/core/policy_chain_executor.py`, 단위시험: `VJ-ECL-2026/tests/unit/test_unit002_policy_chain_executor.py`(정상/override/예외 3경로 전부 대응) |
+
+## Phase 1 구현 단위(UNIT) ↔ 소스/테스트 파일 매핑 (인프라 UNIT 포함, 2026-09-18 구현 완료)
+
+특정 SWR 하나에 직접 할당되지 않는 인프라 UNIT(공통 자료형, 정책 포트, 오케스트레이션, PC/SIL
+어댑터)의 소스/테스트 파일 경로. 근거 없는 요소가 아닌 이유는 `SWD-PH1_SW 상세설계서.md` §12/§14
+및 `SWA-PH1_SW 아키텍처 설계서.md` §12를 참조.
+
+| UNIT ID | 명칭 | 소스 파일 | 단위시험 파일 |
+|---|---|---|---|
+| UNIT-000 | 공통 자료형(Common Types) | `VJ-ECL-2026/src/core/types.py` | `VJ-ECL-2026/tests/unit/test_unit000_types.py` |
+| UNIT-008 | PolicyPort(정책 포트 정의) | `VJ-ECL-2026/src/core/policy_port.py` | `VJ-ECL-2026/tests/unit/test_unit008_policy_port.py` |
+| UNIT-001 | EvaluationCycleFacade | `VJ-ECL-2026/src/core/facade.py` | `VJ-ECL-2026/tests/unit/test_unit001_facade.py` |
+| UNIT-002 | PolicyChainExecutor | `VJ-ECL-2026/src/core/policy_chain_executor.py` | `VJ-ECL-2026/tests/unit/test_unit002_policy_chain_executor.py` |
+| UNIT-005 | LockStateStore | `VJ-ECL-2026/src/core/lock_state_store.py` | `VJ-ECL-2026/tests/unit/test_unit005_lock_state_store.py` |
+| UNIT-101 | DriverCommandTestAdapter | `VJ-ECL-2026/src/adapters/pcsil/driver_command_test_adapter.py` | `VJ-ECL-2026/tests/unit/test_unit101_driver_command_test_adapter.py` |
+| UNIT-102 | VehicleSnapshotTestAdapter | `VJ-ECL-2026/src/adapters/pcsil/vehicle_snapshot_test_adapter.py` | `VJ-ECL-2026/tests/unit/test_unit102_vehicle_snapshot_test_adapter.py` |
+| UNIT-103 | ActuatorOutputTestAdapter | `VJ-ECL-2026/src/adapters/pcsil/actuator_output_test_adapter.py` | `VJ-ECL-2026/tests/unit/test_unit103_actuator_output_test_adapter.py` |
+| UNIT-104 | DisplayOutputTestAdapter | `VJ-ECL-2026/src/adapters/pcsil/display_output_test_adapter.py` | `VJ-ECL-2026/tests/unit/test_unit104_display_output_test_adapter.py` |
+| UNIT-105 | PcSilHarnessEntryPoint | `VJ-ECL-2026/src/adapters/pcsil/entry_point.py` | `VJ-ECL-2026/tests/unit/test_unit105_entry_point.py` |
+
+**구현/시험 결과 요약(2026-09-18, `tdd` 스킬 산출물)**: `python -m coverage run --branch -m
+unittest discover -s VJ-ECL-2026/tests/unit` 66/66 테스트 통과, `coverage report --fail-under=100`
+branch coverage 100%(345~348 stmts, 40 branches, 전 파일 100%), `flake8 VJ-ECL-2026/src` 0건,
+`pylint`(저장소 `.pylintrc` 기준) 10.00/10. 표준 라이브러리만 사용(외부 의존성 없음, SBOM 대상
+없음). 상세 내역은 구현 담당자 보고 참고.
 
 ## 외부 인터페이스 참조 (요구사항이 아님 — 근거 자료)
 
