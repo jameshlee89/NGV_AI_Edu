@@ -1,0 +1,52 @@
+@startuml SWD-PH1_sequence-policy-fault
+title Phase 1 신규 시나리오 — 정책 실행 중 예외 발생 (§10.4 확정 결정, IF-INT-008 계약 위반 방어)
+
+participant "UNIT-102\nVehicleSnapshotTestAdapter" as U102
+participant "UNIT-001\nEvaluationCycleFacade" as U001
+participant "UNIT-002\nPolicyChainExecutor" as U002
+participant "UNIT-007\nIgnitionOverridePolicy" as U007
+participant "UNIT-006\nDriverCommandPolicy" as U006
+participant "UNIT-005\nLockStateStore" as U005
+participant "UNIT-004\nCommandDispatcher" as U004
+participant "UNIT-103\nActuatorOutputTestAdapter" as U103
+participant "UNIT-104\nDisplayOutputTestAdapter" as U104
+participant "logging\n(vjecl.core.policy_chain)" as LOG
+
+note over U006
+  결함 주입 가정(시험 목적): DriverCommandPolicy.evaluate()가
+  계약 위반으로 예외를 던진다고 가정한다(IF-INT-008 위반 사례).
+end note
+
+U102 -> U001 : IF-INT-002 submit_vehicle_snapshot(ignition_on=TRUE, t)
+U001 -> U002 : IF-INT-009 evaluate(snapshot)
+
+U002 -> U007 : IF-INT-008 evaluate(context)\n(category=OVERRIDE)
+U007 -> U005 : IF-INT-007 read_current()
+U005 --> U007 : {left:LOCK, right:RELEASE}
+U007 --> U002 : PolicyResult(decision=PASS)
+
+note over U002
+  OVERRIDE 전원 PASS -> BASE 단계 진행
+end note
+
+U002 -> U006 : IF-INT-008 evaluate(context)\n(category=BASE)
+U006 -->x U002 : **raises Exception** (계약 위반)
+
+U002 -> LOG : ERROR log(policy=DriverCommandPolicy,\nstage=BASE_EVAL, exc=repr(e))
+note over U002
+  §10.4 결정: 평가주기 전체 실패로 처리.
+  write()/apply()/show()는 호출하지 않는다
+  (직전 확정 출력 {LOCK, RELEASE}가 그대로 유지됨).
+end note
+
+U002 -> U004 : IF-INT-006 discard_current_cycle_command()\n(성공/실패 공통 — §10.4)
+
+U002 --> U001 : EvaluationResult(status=FAILED,\nlock_left=LOCK, lock_right=RELEASE,\nstate_label=None, reason_code=None,\nerror_detail="DriverCommandPolicy: ...")
+U001 --> U102 : EvaluationResult(FAILED)
+
+note over U103, U104
+  ActuatorOutputTestAdapter/DisplayOutputTestAdapter는
+  이번 주기에 호출되지 않았으므로 마지막 성공 값을
+  계속 보고한다(get_last_applied/get_last_shown 불변).
+end note
+@enduml

@@ -1,0 +1,177 @@
+@startuml SWD-PH1_class
+title VJ-ECL-2026 Phase 1 — 상세설계 클래스/호출관계 (SWA-PH1_component.puml 구체화)
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "UNIT-000 공통 자료형 (src/core/types.py)" {
+  enum Side { LEFT\nRIGHT\nALL }
+  enum Action { LOCK\nUNLOCK }
+  enum Source { PHYSICAL_BUTTON\nAVN\nVOICE\nMOBILE_APP }
+  enum LockState { LOCK\nRELEASE }
+  enum DisplayState { LOCKED_LEFT\nLOCKED_RIGHT\nLOCKED_ALL\nRELEASED\nOFF }
+  enum ReasonCode { NONE\nINVALID_COMMAND\nIGNITION_OFF }
+  enum IgnitionState { ON\nOFF\nINVALID }
+  enum PolicyDecision { OVERRIDE_FINAL\nPROPOSE\nPASS }
+  enum PolicyCategory { OVERRIDE\nBASE }
+  enum AsilLevel { QM\nASIL_B }
+  enum CycleStatus { COMMITTED\nFAILED }
+
+  class DriverCommand <<value, frozen>> {
+    side: object
+    action: object
+    source: object
+  }
+  class VehicleSnapshot <<value, frozen>> {
+    timestamp_s: float
+    ignition_on: object
+  }
+  class ValidCommand <<value, frozen>> {
+    side: Side
+    action: Action
+    source: Source
+  }
+  class Rejection <<value, frozen>> {
+    reason_code: ReasonCode
+  }
+  class LockPair <<value, frozen>> {
+    left: LockState
+    right: LockState
+  }
+  class PolicyContext <<value, frozen>> {
+    snapshot: VehicleSnapshot
+  }
+  class PolicyResult <<value, frozen>> {
+    decision: PolicyDecision
+    lock_left: LockState
+    lock_right: LockState
+    reason_code: ReasonCode
+    state_label: DisplayState
+  }
+  class EvaluationResult <<value, frozen>> {
+    status: CycleStatus
+    lock_left: LockState
+    lock_right: LockState
+    state_label: DisplayState
+    reason_code: ReasonCode
+    error_detail: str
+  }
+  class "derive_display_state()" as DDS <<pure function>>
+}
+
+package "UNIT-008 정책/출력 포트 (src/core/policy_port.py)" {
+  interface PolicyPort <<Protocol, IF-INT-008>> {
+    category: PolicyCategory
+    asil_level: AsilLevel
+    priority: int
+    +evaluate(context: PolicyContext): PolicyResult
+  }
+  interface ActuatorPort <<Protocol, IF-INT-003>> {
+    +apply(lock_left, lock_right): None
+  }
+  interface DisplayPort <<Protocol, IF-INT-004>> {
+    +show(state, reason_code): None
+  }
+}
+
+package "코어 (src/core/)" {
+  class "UNIT-001\nEvaluationCycleFacade" as U001 {
+    -dispatcher: CommandDispatcher
+    -executor: PolicyChainExecutor
+    +submit_driver_command(raw): None  <<FN-001, IF-INT-001>>
+    +submit_vehicle_snapshot(snapshot): EvaluationResult <<FN-002, IF-INT-002>>
+  }
+  class "UNIT-002\nPolicyChainExecutor" as U002 {
+    -policies: list<PolicyPort>
+    -store: LockStateStore
+    -dispatcher: CommandDispatcher
+    -actuator_port: ActuatorPort
+    -display_port: DisplayPort
+    +register_policy(policy): None <<FN-011>>
+    +evaluate(snapshot): EvaluationResult <<FN-010, IF-INT-009>>
+    -_handle_cycle_failure(fault): EvaluationResult
+  }
+  class "UNIT-003\nCommandValidator" as U003 {
+    +validate(raw: DriverCommand): ValidCommand|Rejection <<FN-020, IF-INT-005>>
+  }
+  class "UNIT-004\nCommandDispatcher" as U004 {
+    -validator: CommandValidator
+    -staged: ValidCommand|Rejection|None
+    +dispatch(raw): None <<FN-030, IF-INT-006>>
+    +get_current_cycle_command(): ValidCommand|Rejection|None <<FN-031, IF-INT-006>>
+    +discard_current_cycle_command(): None <<FN-032, IF-INT-006>>
+  }
+  class "UNIT-005\nLockStateStore" as U005 {
+    -left: LockState
+    -right: LockState
+    +read_current(): LockPair <<FN-040, IF-INT-007>>
+    +write(left, right): None <<FN-041, IF-INT-007>>
+  }
+  class "UNIT-006\nDriverCommandPolicy" as U006 <<implements PolicyPort, BASE>> {
+    -dispatcher: CommandDispatcher
+    -store: LockStateStore
+    +evaluate(context): PolicyResult <<FN-050>>
+  }
+  class "UNIT-007\nIgnitionOverridePolicy" as U007 <<implements PolicyPort, OVERRIDE>> {
+    -store: LockStateStore
+    +evaluate(context): PolicyResult <<FN-060>>
+    -_classify_ignition(raw): IgnitionState <<FN-061>>
+  }
+}
+
+package "PC/SIL 어댑터 (src/adapters/pcsil/)" {
+  class "UNIT-101\nDriverCommandTestAdapter" as U101 {
+    -facade: EvaluationCycleFacade
+    +submit(raw_vector: dict): None <<FN-101, IF-EXT-001>>
+  }
+  class "UNIT-102\nVehicleSnapshotTestAdapter" as U102 {
+    -facade: EvaluationCycleFacade
+    +submit(raw_vector: dict): EvaluationResult <<FN-102, IF-EXT-002>>
+  }
+  class "UNIT-103\nActuatorOutputTestAdapter" as U103 <<implements ActuatorPort>> {
+    -last: LockPair
+    +apply(lock_left, lock_right): None <<FN-103, IF-INT-003>>
+    +get_last_applied(): LockPair <<시험 전용 확장>>
+  }
+  class "UNIT-104\nDisplayOutputTestAdapter" as U104 <<implements DisplayPort>> {
+    -last: tuple
+    +show(state, reason_code): None <<FN-104, IF-INT-004>>
+    +get_last_shown(): tuple <<시험 전용 확장>>
+  }
+  class "UNIT-105\nPcSilHarnessEntryPoint" as U105 <<Composition Root>> {
+    +build_system(): SystemHandle <<FN-105>>
+  }
+}
+
+U004 --> U003 : validate()
+U006 ..|> PolicyPort
+U007 ..|> PolicyPort
+U103 ..|> ActuatorPort
+U104 ..|> DisplayPort
+U006 --> U004 : get_current_cycle_command()
+U006 --> U005 : read_current()
+U007 --> U005 : read_current()
+U002 o--> PolicyPort : list (DIP)
+U002 --> U005 : write() (단일 writer)
+U002 --> U004 : discard_current_cycle_command()
+U002 o--> ActuatorPort
+U002 o--> DisplayPort
+U001 --> U004 : dispatch()
+U001 --> U002 : evaluate()
+U101 --> U001 : submit_driver_command()
+U102 --> U001 : submit_vehicle_snapshot()
+U105 ..> U101 : 조립
+U105 ..> U102 : 조립
+U105 ..> U103 : 조립
+U105 ..> U104 : 조립
+U105 ..> U001 : 조립
+U105 ..> U002 : 조립
+U105 ..> U006 : 조립
+U105 ..> U007 : 조립
+
+note bottom of U002
+  §6.4/§10.4: policy.evaluate() 예외 시
+  write()/apply()/show()를 호출하지 않고
+  EvaluationResult(status=FAILED)를 값으로 반환.
+  discard_current_cycle_command()는 성공/실패 공통 호출.
+end note
+@enduml

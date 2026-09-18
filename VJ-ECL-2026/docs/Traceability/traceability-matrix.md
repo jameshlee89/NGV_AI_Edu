@@ -18,10 +18,10 @@
 
 | 하위 ID | 유형 | 상위(근거) ID | 설계 요소 | 테스트 케이스 ID | 검증 상태 | 비고 |
 |---|---|---|---|---|---|---|
-| SWR-001 | 기능(QM) | OEM-FR-001 (+ OEM-IF-004 오류 처리) | ARC-003 CommandValidator (IF-INT-005) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 | 미정 (G4, `sw-system-test` 스킬에서 도출 예정) | 미검증 | 다이어그램: `SWR-PH1_sequence.puml`, `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml` |
-| SWR-002 | 기능(QM) | OEM-FR-001 | ARC-004 CommandDispatcher (IF-INT-006) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_sequence.puml`, `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml` |
-| SWR-004 | 기능(QM) | OEM-FR-001 | ARC-006 DriverCommandPolicy, BASE 정책 (IF-INT-008) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_state-ignition.puml`(ACTIVE 하위상태), `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWA-PH1_sequence-nominal.puml`. SWR-020과 우선순위 관계 있음(비고 참조) |
-| SWR-020 | 기능(QM) | OEM-FR-007 | ARC-007 IgnitionOverridePolicy, OVERRIDE 정책 (IF-INT-008) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_state-ignition.puml`(OFF↔ACTIVE 전이), `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWA-PH1_sequence-ignition-override.puml`. SWR-002/SWR-004 산출값보다 항상 우선 적용(SWR 문서 §8) — ARC-002 PolicyChainExecutor가 이 우선순위를 실행(IF-INT-008 규약) |
+| SWR-001 | 기능(QM) | OEM-FR-001 (+ OEM-IF-004 오류 처리) | ARC-003 CommandValidator (IF-INT-005) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-003 CommandValidator / FN-020 `validate()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.1/§6.1, 의사결정표 없음(총함수, 진리표는 §6.1 의사코드로 대체) | 미정 (G4, `sw-system-test` 스킬에서 도출 예정) | 미검증 | 다이어그램: `SWR-PH1_sequence.puml`, `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWD-PH1_class.puml` |
+| SWR-002 | 기능(QM) | OEM-FR-001 | ARC-004 CommandDispatcher (IF-INT-006) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-004 CommandDispatcher / FN-030 `dispatch()`, FN-031 `get_current_cycle_command()`, FN-032 `discard_current_cycle_command()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.2, source 비분기 정적 근거(§5.2, §11.1) | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_sequence.puml`, `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWD-PH1_class.puml` |
+| SWR-004 | 기능(QM) | OEM-FR-001 | ARC-006 DriverCommandPolicy, BASE 정책 (IF-INT-008) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-006 DriverCommandPolicy / FN-050 `evaluate()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.4/§6.2, 정책 의사결정표 §7.1(12+2행, 완전성/일관성 점검 완료) | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_state-ignition.puml`(ACTIVE 하위상태), `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWA-PH1_sequence-nominal.puml`, `SWD-PH1_class.puml`. SWR-020과 우선순위 관계 있음(비고 참조, 실행 근거 §7.3) |
+| SWR-020 | 기능(QM) | OEM-FR-007 | ARC-007 IgnitionOverridePolicy, OVERRIDE 정책 (IF-INT-008) — `SWA-PH1_SW 아키텍처 설계서.md` §3.1/§12 ▶ **UNIT-007 IgnitionOverridePolicy / FN-060 `evaluate()`, FN-061 `_classify_ignition()`** — `SWD-PH1_SW 상세설계서.md` §2.1/§5.5/§6.3, 정책 의사결정표 §7.2(3행) + 상태전이 4케이스 §8.2 | 미정 (G4) | 미검증 | 다이어그램: `SWR-PH1_state-ignition.puml`(OFF↔ACTIVE 전이), `SWR-PH1_requirements-trace.puml`, `SWA-PH1_component.puml`, `SWA-PH1_sequence-ignition-override.puml`, `SWD-PH1_class.puml`, `SWD-PH1_state-cycle-detail.puml`. SWR-002/SWR-004 산출값보다 항상 우선 적용(SWR 문서 §8) — ARC-002/**UNIT-002 PolicyChainExecutor(FN-010)**가 이 우선순위를 실행(IF-INT-008 규약, §7.3), 정책 실행 중 예외 처리 결정은 `SWD-PH1_SW 상세설계서.md` §10.4 참고 |
 
 ## 외부 인터페이스 참조 (요구사항이 아님 — 근거 자료)
 
@@ -35,8 +35,9 @@
 ## 알려진 공백 (결함 아님 — 게이트 진행에 따른 예정된 상태)
 
 - SWR-001/002/004/020의 "설계 요소"는 G2 아키텍처 설계(`SWA-PH1_SW 아키텍처 설계서.md`, v0.1 초안)
-  완료로 2026-09-18 갱신했다. 상세설계(SWE.3)에서 모듈/함수 수준으로 더 구체화되면 이 표의 "설계
-  요소"는 아키텍처 요소(ARC-XXX)에 더해 상세설계 요소도 함께 표기하도록 갱신한다.
+  완료로 2026-09-18 갱신했다. 이후 상세설계(SWE.3, `SWD-PH1_SW 상세설계서.md` v0.1 초안) 완료로
+  2026-09-18 각 행에 `UNIT-XXX`/`FN-XXX` 구현 단위·함수 계약 링크를 추가로 갱신했다(같은 작업 안에서
+  갱신, 미루지 않음).
 - "테스트 케이스 ID"는 아직 미정이다 — G4(시스템 시험) 완료 시 `sw-system-test` 스킬 산출물의
   케이스 ID를 이 표에 채워 넣어야 한다 — 나중으로 미루지 않고 해당 산출물 작성과 같은 작업 안에서
   갱신한다.

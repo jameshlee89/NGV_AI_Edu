@@ -1,0 +1,41 @@
+@startuml SWD-PH1_state-cycle-detail
+title Phase 1 — ARC-002(PolicyChainExecutor) 평가주기 실행 상태, 실패 경로 추가\n(SWA-PH1_state-cycle.puml 확장, §8.3/§10.4 근거)
+
+[*] --> IDLE
+
+IDLE --> COMMAND_STAGED : IF-INT-001 submit_driver_command()
+COMMAND_STAGED --> IDLE : (동일 상태 대기, 최대 1건/주기)
+
+IDLE --> EVALUATING : IF-INT-002 submit_vehicle_snapshot()
+COMMAND_STAGED --> EVALUATING : IF-INT-002 submit_vehicle_snapshot()
+
+state EVALUATING {
+  [*] --> OVERRIDE_SCAN
+  OVERRIDE_SCAN --> OVERRIDE_SCAN : PolicyResult=PASS (다음 OVERRIDE 정책)
+  OVERRIDE_SCAN --> OUTPUT_COMMIT : PolicyResult=OVERRIDE_FINAL
+  OVERRIDE_SCAN --> BASE_EVAL : 모든 OVERRIDE 정책 PASS
+  BASE_EVAL --> OUTPUT_COMMIT : PolicyResult=PROPOSE
+
+  OVERRIDE_SCAN --> CYCLE_FAILED : policy.evaluate() 예외 (신규, §10.4)
+  BASE_EVAL --> CYCLE_FAILED : policy.evaluate() 예외 (신규, §10.4)
+}
+
+EVALUATING --> IDLE : OUTPUT_COMMIT 완료\n(write/apply/show/discard 호출,\nstatus=COMMITTED)
+EVALUATING --> IDLE : CYCLE_FAILED 완료\n(discard만 호출, write/apply/show\n호출 안 함, status=FAILED)
+
+note right of CYCLE_FAILED
+  §10.4 결정:
+  - write()/apply()/show() 호출하지 않음
+    (직전 확정 출력 유지, fail-static)
+  - discard_current_cycle_command()는 호출
+  - logging.ERROR로 실패 사유 기록
+  - 같은 주기 안에서 재시도하지 않음
+    (다음 evaluate() 호출에서 자연 복구)
+end note
+
+note left of BASE_EVAL
+  BASE_EVAL --> OVERRIDE_SCAN 전이는
+  여전히 금지(SWA 문서 승계, 주기 내
+  정책 재평가 없음).
+end note
+@enduml
