@@ -1,0 +1,66 @@
+name: CI
+
+# PR이 main으로 향할 때(및 main에 직접 반영될 때) 지속적 통합/지속적 테스트를 수행한다.
+# CLAUDE.md의 구현/테스트 지침(Python 3.14, unittest, Branch 커버리지 100%,
+# 테스트 성공률 100%, 순환복잡도 10 이하, 중복코드 7줄까지, 네이밍 규칙)을 게이트로 강제한다.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build, Lint, Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 3.14 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          pip install coverage flake8 pylint
+
+      - name: Python 소스 존재 확인
+        id: detect
+        run: |
+          if find . -name "*.py" -not -path "./.git/*" | grep -q .; then
+            echo "has_py=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_py=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Python 소스 파일이 아직 없어 테스트/품질 게이트를 건너뜁니다."
+          fi
+
+      # 테스트 성공률 100% (CLAUDE.md 단위/통합/시스템 테스트 지침):
+      # unittest는 실패하는 테스트가 하나라도 있으면 0이 아닌 종료 코드를 반환하므로,
+      # 이 단계가 실패하면 워크플로우 전체가 실패해 "성공률 100%"를 강제한다.
+      - name: 단위/통합 테스트 실행 (unittest + Branch 커버리지 계측)
+        if: steps.detect.outputs.has_py == 'true'
+        run: coverage run --branch -m unittest discover -v
+
+      - name: Branch 커버리지 100% 확인 (CLAUDE.md 단위 테스트 지침)
+        if: steps.detect.outputs.has_py == 'true'
+        run: coverage report -m --fail-under=100
+
+      - name: 순환복잡도 검사 (flake8/mccabe, 기준 10 이하)
+        if: steps.detect.outputs.has_py == 'true'
+        run: flake8 .
+
+      - name: 함수 길이(순수코드) · 중복 코드 · 네이밍 검사 (pylint)
+        if: steps.detect.outputs.has_py == 'true'
+        run: pylint $(find . -name "*.py" -not -path "./.git/*")
