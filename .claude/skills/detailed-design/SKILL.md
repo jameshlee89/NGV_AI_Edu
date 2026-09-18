@@ -25,6 +25,12 @@ description: >
 7. 오류·예외에 대한 방어적 동작 정의
 8. 요구사항·아키텍처·구현 단위·단위시험 간 양방향 추적성 확보
 
+## 적용 범위와 인접 스킬과의 경계
+
+이 스킬은 **SW 상세설계(A-SPICE SWE.3)**만 다룬다. 아키텍처 설계는 `architecture-design`, 구현과
+단위 테스트(TDD)는 `tdd`, 아키텍처 인터페이스 기반 통합시험은 `integration-testing`, 요구사항 기반
+블랙박스 시스템 시험은 `sw-system-test` 스킬이 담당하며 이 스킬은 다루지 않는다.
+
 ## 0. 시작할 때 항상 할 일
 
 1. `references/template-source.md`를 읽는다. 회사 지정 상세설계서 템플릿(TPL-SWE3-001 docx,

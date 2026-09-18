@@ -22,6 +22,14 @@ description: >
 > CL2 GP를 아무리 잘 지켜도 상위 등급을 줄 수 없다. 감사 시작 전에 반드시 대상 프로세스(예: SWE.1, SYS.4,
 > SUP.9 등)의 BP/WP 목록부터 확인한다.
 
+## 적용 범위와 인접 스킬과의 경계
+
+이 스킬은 다른 스킬들과 축이 다르다 — **산출물을 만들지 않고, 이미 만들어진 산출물/증적을 감사**한다.
+`requirements-analyst`(SYS.1/SYS.2/SWE.1), `architecture-design`(SWE.2), `detailed-design`(SWE.3),
+`tdd`(구현/단위시험), `integration-testing`(SWE.5), `sw-system-test`(SWE.6)가 만든 산출물이 이 스킬의
+감사 대상이 될 수 있다. 특정 산출물을 새로 작성해 달라는 요청에는 이 스킬이 아니라 해당 단계의 스킬을
+사용한다.
+
 ## 0. 원문 소스 우선순위 (정확도 필수)
 
 이 SKILL.md에 있는 GP 설명은 **감사 절차를 설계하기 위한 참고용 요약**이지, 표준 원문 그 자체가 아니다.
