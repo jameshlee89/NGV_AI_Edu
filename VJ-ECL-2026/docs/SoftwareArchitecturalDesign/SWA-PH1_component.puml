@@ -1,0 +1,116 @@
+@startuml SWA-PH1_component
+title VJ-ECL-2026 Phase 1 — 논리 아키텍처(컴포넌트) 초안 (헥사고날 + 코어 내부 정책 체인)
+skinparam componentStyle rectangle
+
+package "구동 어댑터 (Driving Adapters) — Phase 1 구현" {
+  component "[ARC-101]\nDriverCommandTestAdapter" as ARC101
+  component "[ARC-102]\nVehicleSnapshotTestAdapter" as ARC102
+  component "[ARC-105]\nPcSilHarnessEntryPoint" as ARC105
+}
+
+package "구동 어댑터 — Phase 4 예정 (포트만 확보, 미구현)" #line.dashed {
+  component "[ARC-201]\nDriverCommandWebAdapter\n(예정)" as ARC201 #line.dashed
+  component "[ARC-202]\nVehicleSnapshotWebAdapter\n(예정)" as ARC202 #line.dashed
+  component "[ARC-205]\nWebSimulatorEntryPoint\n(예정)" as ARC205 #line.dashed
+}
+
+package "코어 (Core Domain) — Phase 1" {
+  component "[ARC-001]\nEvaluationCycleFacade" as ARC001
+  component "[ARC-002]\nPolicyChainExecutor" as ARC002
+  component "[ARC-003]\nCommandValidator\n(SWR-001)" as ARC003
+  component "[ARC-004]\nCommandDispatcher\n(SWR-002)" as ARC004
+  component "[ARC-005]\nLockStateStore" as ARC005
+  component "[ARC-006]\nDriverCommandPolicy\n(SWR-004, BASE)" as ARC006
+  component "[ARC-007]\nIgnitionOverridePolicy\n(SWR-020, OVERRIDE, QM)" as ARC007
+
+  interface "IF-INT-001\nDriver명령제출" as IF001
+  interface "IF-INT-002\n차량스냅샷제출/평가트리거" as IF002
+  interface "IF-INT-005\n명령유효성판정" as IF005
+  interface "IF-INT-006\n검증된명령조회" as IF006
+  interface "IF-INT-007\n잠금상태접근" as IF007
+  interface "IF-INT-008\n출력정책포트" as IF008
+  interface "IF-INT-009\n평가실행" as IF009
+}
+
+package "코어 — Phase 2/3 확장 예정 (IF-INT-008 구현체 추가, 포트 변경 없음)" #line.dashed {
+  component "[ARC-301]\nCrashOverridePolicy\n(Phase2, ASIL B, 예정)" as ARC301 #line.dashed
+  component "[ARC-302]\nRearProximityOverridePolicy\n(Phase2, ASIL B, 예정)" as ARC302 #line.dashed
+  component "[ARC-303]\nSensorFaultHoldPolicy\n(Phase2, ASIL B, 예정)" as ARC303 #line.dashed
+  component "[ARC-401]\nVehicleSpeedAutoLockPolicy\n(Phase3, 예정)" as ARC401 #line.dashed
+  component "[ARC-402]\nFireOverheatOccupantOverridePolicy\n(Phase3, 예정)" as ARC402 #line.dashed
+  component "[ARC-403]\nIsofixLockPolicy\n(Phase3, 예정)" as ARC403 #line.dashed
+}
+
+package "피구동 어댑터 (Driven Adapters) — Phase 1 구현" {
+  component "[ARC-103]\nActuatorOutputTestAdapter" as ARC103
+  component "[ARC-104]\nDisplayOutputTestAdapter" as ARC104
+  interface "IF-INT-003\n액추에이터출력" as IF003
+  interface "IF-INT-004\n표시출력" as IF004
+}
+
+package "피구동 어댑터 — Phase 4 예정" #line.dashed {
+  component "[ARC-203]\nActuatorOutputWebAdapter\n(예정)" as ARC203 #line.dashed
+  component "[ARC-204]\nDisplayOutputWebAdapter\n(예정)" as ARC204 #line.dashed
+}
+
+' 구동측 연결
+ARC101 --> IF001
+ARC102 --> IF002
+IF001 -down- ARC001
+IF002 -down- ARC001
+ARC105 ..> ARC101 : 조립
+ARC105 ..> ARC102 : 조립
+ARC105 ..> ARC103 : 조립
+ARC105 ..> ARC104 : 조립
+
+ARC201 ..> IF001 : (예정)
+ARC202 ..> IF002 : (예정)
+ARC205 ..> ARC201 : (예정) 조립
+ARC205 ..> ARC202 : (예정) 조립
+
+' 코어 내부 연결
+ARC001 --> IF006 : Driver 명령 위임
+IF006 -down- ARC004
+ARC004 --> IF005
+IF005 -down- ARC003
+ARC001 --> IF009 : 평가 트리거
+IF009 -down- ARC002
+ARC002 --> IF008 : 정책 평가(우선순위 순)
+IF008 -down- ARC006
+IF008 -down- ARC007
+ARC006 --> IF007 : read
+ARC007 --> IF007 : read
+ARC002 --> IF007 : read/write(단일 writer)
+IF007 -down- ARC005
+
+IF008 -up- ARC301 : (예정) 구현
+IF008 -up- ARC302 : (예정) 구현
+IF008 -up- ARC303 : (예정) 구현
+IF008 -up- ARC401 : (예정) 구현
+IF008 -up- ARC402 : (예정) 구현
+IF008 -up- ARC403 : (예정) 구현
+
+' 출력측 연결
+ARC002 --> IF003 : 최종 lock_left/right 반영
+ARC002 --> IF004 : state/reason_code 반영
+IF003 -down- ARC103
+IF004 -down- ARC104
+ARC203 ..> IF003 : (예정) 구현
+ARC204 ..> IF004 : (예정) 구현
+
+note bottom of ARC002
+  ASIL B 우선 계약(IF-INT-008):
+  category=OVERRIDE 정책을
+  asil_level 내림차순(ASIL_B 먼저) →
+  동일 등급 내 priority 오름차순으로 평가.
+  하나라도 OVERRIDE_FINAL 반환 시
+  즉시 채택하고 이후 정책 스킵.
+  모두 PASS면 category=BASE 정책 실행.
+end note
+
+note right of ARC005
+  단일 writer 원칙: ARC-002만 write.
+  ARC-006/ARC-007/향후 정책은 read-only.
+  동시성 없음(평가주기 순차 실행 가정).
+end note
+@enduml

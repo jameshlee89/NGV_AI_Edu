@@ -1,0 +1,48 @@
+@startuml SWA-PH1_sequence-ignition-override
+title Phase 1 오버라이드 시나리오 — ignition FALSE, Driver_Command 무시 (SWR-020 > SWR-002/004 우선순위)
+
+participant "ARC-102\nVehicleSnapshotTestAdapter" as A102
+participant "ARC-001\nEvaluationCycleFacade" as A001
+participant "ARC-004\nCommandDispatcher" as A004
+participant "ARC-002\nPolicyChainExecutor" as A002
+participant "ARC-007\nIgnitionOverridePolicy" as A007
+participant "ARC-006\nDriverCommandPolicy" as A006
+participant "ARC-005\nLockStateStore" as A005
+participant "ARC-103\nActuatorOutputTestAdapter" as A103
+participant "ARC-104\nDisplayOutputTestAdapter" as A104
+
+note over A004
+  이번 평가주기에 Driver_Command(side=right, action=lock)가
+  staged 되어 있다고 가정 (SWR-020(b) 검증 목적)
+end note
+
+A102 -> A001 : IF-INT-002 submit_vehicle_snapshot(ignition_on=FALSE, t)
+A001 -> A002 : IF-INT-009 evaluate(snapshot)
+
+A002 -> A007 : IF-INT-008 evaluate(context)\n(category=OVERRIDE, asil=QM, priority=1)
+A007 -> A005 : IF-INT-007 read_current()
+A005 --> A007 : {left:LOCK, right:RELEASE} (직전 상태)
+A007 --> A002 : PolicyResult(decision=OVERRIDE_FINAL,\nleft=RELEASE, right=RELEASE,\nstate=OFF, reason_code=IGNITION_OFF)
+
+note over A002
+  OVERRIDE_FINAL 수신 → 즉시 채택.
+  ARC-006(BASE, SWR-004)과 staged된
+  Driver_Command(side=right, action=lock)는
+  평가되지 않고 건너뜀(SWR-020b: "새
+  Driver_Command를 적용하지 않는다").
+end note
+
+A002 -> A004 : IF-INT-006 discard_current_cycle_command()\n(적용되지 않았음을 명시적으로 폐기)
+A002 -> A005 : IF-INT-007 write(left=RELEASE, right=RELEASE)
+A002 -> A103 : IF-INT-003 apply(left=RELEASE, right=RELEASE)
+A002 -> A104 : IF-INT-004 show(state=OFF, reason_code=IGNITION_OFF)
+A002 --> A001 : EvaluationResult
+
+note over A007
+  Phase 2에서 CrashOverridePolicy(ASIL B)가
+  IF-INT-008에 category=OVERRIDE, asil=ASIL_B,
+  priority=1로 등록되면, ARC-002는 CrashOverride를
+  ARC-007(QM)보다 먼저 평가한다(ASIL 내림차순).
+  ARC-007과 그 이하 컴포넌트는 코드 변경이 필요 없다.
+end note
+@enduml

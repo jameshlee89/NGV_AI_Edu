@@ -1,0 +1,44 @@
+@startuml SWA-PH1_state-cycle
+title Phase 1 — ARC-002(PolicyChainExecutor) 평가주기 실행 상태 (아키텍처 관점)
+
+[*] --> IDLE
+
+IDLE --> COMMAND_STAGED : IF-INT-001 submit_driver_command()\n(ARC-004가 staging, 없으면 생략)
+COMMAND_STAGED --> IDLE : (같은 상태로 대기, 최대 1건/주기 — SWR-PH1 가정2)
+
+IDLE --> EVALUATING : IF-INT-002 submit_vehicle_snapshot()\n(IF-INT-009 evaluate 트리거)
+COMMAND_STAGED --> EVALUATING : IF-INT-002 submit_vehicle_snapshot()
+
+state EVALUATING {
+  [*] --> OVERRIDE_SCAN
+  OVERRIDE_SCAN --> OVERRIDE_SCAN : 다음 OVERRIDE 정책\n(asil_level 내림차순 -> priority 오름차순)\nPolicyResult=PASS
+  OVERRIDE_SCAN --> OUTPUT_COMMIT : PolicyResult=OVERRIDE_FINAL\n(이후 정책 스킵 — ASIL 우선 계약)
+  OVERRIDE_SCAN --> BASE_EVAL : 모든 OVERRIDE 정책 PASS
+  BASE_EVAL --> OUTPUT_COMMIT : BASE 정책 PolicyResult=PROPOSE
+}
+
+EVALUATING --> IDLE : OUTPUT_COMMIT 완료\n(IF-INT-007 write, IF-INT-003/004 호출)
+
+note right of OVERRIDE_SCAN
+  Phase 1: ARC-007(IgnitionOverridePolicy, QM)만 존재.
+  Phase 2: ARC-301/302/303(ASIL B)이 이 상태의
+  스캔 순서 앞쪽에 추가로 삽입된다 — 이 상태
+  다이어그램의 상태/전이 구조 자체는 변경되지
+  않는다(확장은 정책 등록으로만 이루어짐, OCP).
+end note
+
+note left of BASE_EVAL
+  Phase 1: ARC-006(DriverCommandPolicy)만 존재.
+  향후 BASE 정책이 여러 개가 되면 priority 순으로
+  반복하되, 이번 아키텍처 범위에서는 1개로 확정.
+end note
+
+note bottom
+  SW 요구사항 관점의 출력값(lock_left/right) 상태
+  전이는 `SWR-PH1_state-ignition.puml`(OFF/ACTIVE/
+  LOCKED_LEFT/RIGHT/ALL/RELEASED)이 이미 정의했다.
+  이 다이어그램은 그 요구사항 상태를 "어떤 아키텍처
+  실행 경로가 어떻게 산출하는지"를 보여주는 것이며,
+  두 다이어그램은 서로 대체하지 않고 함께 참조된다.
+end note
+@enduml

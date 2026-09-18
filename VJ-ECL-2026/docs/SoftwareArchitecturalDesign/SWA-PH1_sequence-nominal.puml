@@ -1,0 +1,49 @@
+@startuml SWA-PH1_sequence-nominal
+title Phase 1 정상 시나리오 — ignition ON, 유효 Driver_Command(side=left, action=lock)\n(SWR-001, SWR-002, SWR-004)
+
+actor "Driver 소스\n(4채널 중 1)" as Driver
+participant "ARC-101\nDriverCommandTestAdapter" as A101
+participant "ARC-102\nVehicleSnapshotTestAdapter" as A102
+participant "ARC-001\nEvaluationCycleFacade" as A001
+participant "ARC-004\nCommandDispatcher" as A004
+participant "ARC-003\nCommandValidator" as A003
+participant "ARC-002\nPolicyChainExecutor" as A002
+participant "ARC-007\nIgnitionOverridePolicy" as A007
+participant "ARC-006\nDriverCommandPolicy" as A006
+participant "ARC-005\nLockStateStore" as A005
+participant "ARC-103\nActuatorOutputTestAdapter" as A103
+participant "ARC-104\nDisplayOutputTestAdapter" as A104
+
+Driver -> A101 : Driver_Command(side=left, action=lock, source=avn)
+A101 -> A001 : IF-INT-001 submit_driver_command(raw)
+A001 -> A004 : IF-INT-006 dispatch(raw)
+A004 -> A003 : IF-INT-005 validate(raw)
+A003 --> A004 : ValidCommand(side=left, action=lock)
+A004 --> A001 : ack(이번 주기 명령 staged)
+
+... 같은 평가주기, Vehicle 스냅샷 도착 ...
+
+A102 -> A001 : IF-INT-002 submit_vehicle_snapshot(ignition_on=TRUE, t)
+A001 -> A002 : IF-INT-009 evaluate(snapshot)
+A002 -> A007 : IF-INT-008 evaluate(context)\n(category=OVERRIDE, asil=QM, priority=1)
+A007 -> A005 : IF-INT-007 read_current()
+A005 --> A007 : {left:RELEASE, right:RELEASE}
+A007 --> A002 : PolicyResult(decision=PASS)\n(ignition_on=TRUE 이므로 개입 없음)
+
+note over A002
+  override 정책 중 OVERRIDE_FINAL 없음
+  -> BASE 정책(ARC-006) 실행
+end note
+
+A002 -> A006 : IF-INT-008 evaluate(context)\n(category=BASE, priority=1)
+A006 -> A004 : IF-INT-006 get_current_cycle_command()
+A004 --> A006 : ValidCommand(side=left, action=lock)
+A006 -> A005 : IF-INT-007 read_current()
+A005 --> A006 : {left:RELEASE, right:RELEASE}
+A006 --> A002 : PolicyResult(decision=PROPOSE,\nleft=LOCK, right=RELEASE(유지),\nstate=LOCKED_LEFT)
+
+A002 -> A005 : IF-INT-007 write(left=LOCK, right=RELEASE)
+A002 -> A103 : IF-INT-003 apply(left=LOCK, right=RELEASE)
+A002 -> A104 : IF-INT-004 show(state=LOCKED_LEFT, reason_code=-)
+A002 --> A001 : EvaluationResult
+@enduml
