@@ -1,0 +1,25 @@
+@startuml SWR-PH1_sequence
+title Phase 1 시퀀스 — 명령 수신부터 출력/표시까지 (SWR-001, SWR-002, SWR-004)
+
+actor "운전자" as Driver
+participant "입력 채널\n(physical_button/avn/voice/mobile_app)" as Channel
+participant "차일드락 제어 SW" as SW
+participant "Actuator Model\n(OEM-IF-005)" as Actuator
+participant "Display\n(OEM-IF-006)" as Display
+
+Driver -> Channel : 좌/우/전체 잠금·해제 조작
+Channel -> SW : Driver_Command(side, action, source)\n[OEM-IF-004, timestamp_s = VehicleSnapshot.timestamp_s]
+
+alt 유효한 명령 (SWR-001a)
+    SW -> SW : source 무관 동일 처리 (SWR-002)
+    SW -> SW : side에 따라 적용 대상 결정 (SWR-004)
+    SW -> Actuator : lock_left / lock_right 갱신 (선택된 출력만)\n[OEM-IF-005: LOCK/RELEASE]
+    SW -> Display : state 갱신\n[OEM-IF-006]
+else 유효하지 않은 명령 (SWR-001b: 누락/형식오류/미등록 enum)
+    SW -> Display : reason_code = INVALID_COMMAND\n[OEM-IF-006]
+    note right of SW
+      lock_left / lock_right는
+      변경하지 않는다.
+    end note
+end
+@enduml

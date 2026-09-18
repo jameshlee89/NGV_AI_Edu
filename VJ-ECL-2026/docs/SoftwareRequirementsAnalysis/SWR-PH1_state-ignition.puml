@@ -1,0 +1,29 @@
+@startuml SWR-PH1_state-ignition
+title Phase 1 상태 다이어그램 — Ignition 상태와 논리 차일드락 출력 (SWR-020, SWR-004)
+
+[*] --> OFF
+
+OFF --> ACTIVE : ignition_on = TRUE
+ACTIVE --> OFF : ignition_on = FALSE\n(SWR-020: lock_left/right -> RELEASE,\nstate=OFF, reason_code=IGNITION_OFF)
+
+state ACTIVE {
+  [*] --> RELEASED
+  RELEASED --> LOCKED_LEFT : Driver_Command(side=left, action=lock)\n(SWR-001/002/004)
+  RELEASED --> LOCKED_RIGHT : Driver_Command(side=right, action=lock)
+  RELEASED --> LOCKED_ALL : Driver_Command(side=all, action=lock)
+  LOCKED_LEFT --> RELEASED : Driver_Command(side=left, action=unlock)
+  LOCKED_RIGHT --> RELEASED : Driver_Command(side=right, action=unlock)
+  LOCKED_ALL --> RELEASED : Driver_Command(side=all, action=unlock)
+  LOCKED_LEFT --> LOCKED_ALL : Driver_Command(side=right, action=lock)
+  LOCKED_RIGHT --> LOCKED_ALL : Driver_Command(side=left, action=lock)
+  LOCKED_ALL --> LOCKED_RIGHT : Driver_Command(side=left, action=unlock)
+  LOCKED_ALL --> LOCKED_LEFT : Driver_Command(side=right, action=unlock)
+}
+
+note right of OFF
+  ignition_on=TRUE 복귀 후 초기 출력값
+  (직전 래치 명령 복원 여부)은
+  OEM 원문에 미명시 — §8 미결정 항목,
+  사용자 확인 필요.
+end note
+@enduml

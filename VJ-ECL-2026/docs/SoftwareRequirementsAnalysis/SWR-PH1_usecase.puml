@@ -1,0 +1,33 @@
+@startuml SWR-PH1_usecase
+left to right direction
+title Phase 1 유스케이스 — OEM-FR-001 / OEM-FR-007 (VJ-ECL-2026)
+
+actor "운전자" as Driver
+actor "물리 버튼" as PhysicalButton
+actor "AVN" as AVN
+actor "음성 인식" as Voice
+actor "모바일 앱" as MobileApp
+actor "차량 (Ignition)" as Vehicle
+
+Driver --> PhysicalButton
+Driver --> AVN
+Driver --> Voice
+Driver --> MobileApp
+
+rectangle "차일드락 제어 SW (Phase 1)" {
+  usecase "좌/우/전체 잠금·해제 명령 수신·검증·적용\n(SWR-001, SWR-002, SWR-004)" as UC1
+  usecase "Ignition-Off 시 논리 출력 강제 해제\n(SWR-020)" as UC2
+}
+
+PhysicalButton --> UC1 : OEM-IF-004
+AVN --> UC1 : OEM-IF-004
+Voice --> UC1 : OEM-IF-004
+MobileApp --> UC1 : OEM-IF-004
+Vehicle --> UC2 : OEM-IF-009 (ignition_on)
+
+note bottom of UC2
+  UC2가 산출하는 출력(RELEASE)은
+  같은 평가주기의 UC1 산출값보다
+  항상 우선 적용된다 (§8 상충 해소).
+end note
+@enduml

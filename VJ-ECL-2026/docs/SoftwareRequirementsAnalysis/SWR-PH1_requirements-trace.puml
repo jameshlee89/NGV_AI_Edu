@@ -1,0 +1,36 @@
+@startuml SWR-PH1_requirements-trace
+title Phase 1 SysML 요구사항 추적 다이어그램 (OEM-FR-001/007 -> SWR-001/002/004/020)
+
+class "OEM-FR-001\n좌/우/전체 잠금·해제 명령 처리" as FR001 <<requirement>>
+class "OEM-FR-007\nIgnition-Off 시 논리 출력 초기 해제" as FR007 <<requirement>>
+
+class "SWR-001\n명령 수신 및 유효성 검증" as SWR001 <<requirement>>
+class "SWR-002\nSource 채널별 동등 처리" as SWR002 <<requirement>>
+class "SWR-004\nLEFT/RIGHT/ALL 선택적 출력 적용" as SWR004 <<requirement>>
+class "SWR-020\nIgnition-Off 강제 해제" as SWR020 <<requirement>>
+
+SWR001 ..> FR001 : <<deriveReqt>>
+SWR002 ..> FR001 : <<deriveReqt>>
+SWR004 ..> FR001 : <<deriveReqt>>
+SWR020 ..> FR007 : <<deriveReqt>>
+
+SWR002 ..> SWR001 : <<refine>>
+SWR004 ..> SWR001 : <<refine>>
+SWR020 ..> SWR004 : <<trace>>
+
+note bottom of SWR020
+  SWR020이 산출한 RELEASE 출력은
+  동일 평가주기에서 SWR002/SWR004가
+  산출한 값보다 항상 우선 적용된다
+  (문서 §8 상충 해소 참조).
+end note
+
+note bottom of FR001
+  검증 수준: PC/SIL/Web
+  (OEM 문서 명시)
+end note
+note bottom of FR007
+  검증 수준: PC/SIL/Web
+  (OEM 문서 명시)
+end note
+@enduml
